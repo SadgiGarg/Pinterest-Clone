@@ -95,18 +95,25 @@ export const deletePin = TryCatch(async (req, res) => {
     res.json({ message: "Pin deleted" });
 });
 export const updatePin = TryCatch(async (req, res) => {
-    const pin = await Pin.findById(req.params.id);
+  const pin = await Pin.findById(req.params.id);
 
-    if (!pin)
-        return res.status(404).json({ message: "Pin not found" });
+  if (!pin)
+    return res.status(404).json({
+      message: "Pin not found",
+    });
 
-    if (pin.owner.toString() !== req.user._id.toString())
-        return res.status(403).json({ message: "Not authorized" });
+  if (pin.owner.toString() !== req.user._id.toString())
+    return res.status(403).json({
+      message: "Not authorized",
+    });
 
-    pin.title = req.body.title;
-    pin.pin = req.body.pin;
+  pin.title = req.body.title;
+  pin.pin = req.body.pin;
 
-    await pin.save();
+  await pin.save();
 
-    res.json({ message: "Pin updated" });
+  res.json({
+    message: "Pin updated successfully",
+    pin,
+  });
 });
