@@ -1,10 +1,18 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { UserData } from '../context/UserContext'
 
 const Navbar = () => {
   const { user, isAuth } = UserData()
   const navigate = useNavigate()
+  const [search, setSearch] = useState("")
+
+  function handleSearch(e) {
+    e.preventDefault()
+    if (!search.trim()) return
+    navigate(`/search?query=${search.trim()}`)
+    setSearch("")
+  }
 
   return (
     <nav
@@ -24,13 +32,15 @@ const Navbar = () => {
       </Link>
 
       {/* Search Bar */}
-      <div className="flex-1 mx-6 max-w-xl">
+      <form onSubmit={handleSearch} className="flex-1 mx-6 max-w-xl">
         <input
           type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
           placeholder="Search for ideas..."
           className="w-full bg-black/5 rounded-full px-5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-200 transition-all duration-300"
         />
-      </div>
+      </form>
 
       {/* Right Side */}
       <div className="flex items-center gap-3">
@@ -46,8 +56,8 @@ const Navbar = () => {
               to="/pin/create"
               className="text-gray-600 font-semibold hover:text-black text-sm hidden md:block px-4 py-2 rounded-full hover:bg-black/5 transition-all duration-300"
             >
-             Create
-             </Link>
+              Create
+            </Link>
             <Link
               to={`/user/${user?._id}`}
               className="w-9 h-9 rounded-full bg-black/5 flex items-center justify-center overflow-hidden hover:ring-2 hover:ring-red-200 transition-all duration-300"
@@ -60,7 +70,7 @@ const Navbar = () => {
                 />
               ) : (
                 <span className="text-gray-600 font-semibold text-sm">
-                  {user.name?.charAt(0).toUpperCase()}
+                  {user?.name?.charAt(0).toUpperCase()}
                 </span>
               )}
             </Link>

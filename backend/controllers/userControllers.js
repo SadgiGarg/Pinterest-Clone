@@ -120,3 +120,21 @@ export const updateUser = TryCatch(async (req, res) => {
 
     res.json({ message: "Profile updated", user })
 })
+export const searchPins = TryCatch(async (req, res) => {
+    const { query } = req.query
+
+    if (!query) {
+        return res.status(400).json({ message: "Search query is required" })
+    }
+
+    const pins = await Pin.find({
+        $or: [
+            { title: { $regex: query, $options: "i" } },
+            { pin: { $regex: query, $options: "i" } },
+        ],
+    })
+        .populate("owner", "-password")
+        .sort({ createdAt: -1 })
+
+    res.json(pins)
+})

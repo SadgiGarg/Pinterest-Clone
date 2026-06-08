@@ -9,6 +9,7 @@ import Navbar from './components/Navbar'
 import CreatePin from "./pages/CreatePin"
 import MyAccount from "./pages/MyAccount"
 import UserProfile from './pages/UserProfile'
+import Search from './pages/Search'
 
 
 const App = () => {
@@ -29,6 +30,7 @@ const App = () => {
             <Route path="/pin/create" element={isAuth ? <CreatePin /> : <Login />} />
             <Route path="/profile/:id" element={isAuth ? <MyAccount /> : <Login />} />
             <Route path="/user/:id" element={isAuth ? <UserProfile /> : <Login />} />
+            <Route path="/search" element={isAuth ? <Search /> : <Login />} />
           </Routes>
         </BrowserRouter>
       )}
