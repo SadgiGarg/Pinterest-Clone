@@ -36,6 +36,13 @@ const pinSchema = new mongoose.Schema({
             },
         }
     ],
+
+    saves: [
+    {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+    }
+],
 }, { timestamps: true });
 
 export default mongoose.model("Pin", pinSchema);

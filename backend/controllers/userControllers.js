@@ -2,6 +2,8 @@ import User from "../models/userModel.js";
 import bcrypt from 'bcrypt';
 import TryCatch from "../utils/TryCatch.js";
 import generateToken from "../utils/generateTokens.js";
+import cloudinary from "../config/cloudinary.js"
+import getDataUrl from "../utils/dataUri.js"
 
 export const registerUser = TryCatch(async (req, res) => {
     const { name, email, password, profilePic, bio } = req.body;
@@ -112,6 +114,24 @@ export const updateUser = TryCatch(async (req, res) => {
 
     if (user._id.toString() !== req.user._id.toString())
         return res.status(403).json({ message: "Not authorized" })
+
+     const { name, bio } = req.body
+
+    // If a new profile pic is uploaded
+    if (req.file) {
+        // Delete old image from cloudinary if exists
+        if (user.profilePic?.id) {
+            await cloudinary.uploader.destroy(user.profilePic.id)
+        }
+
+        const fileUrl = getDataUrl(req.file)
+        const cloud = await cloudinary.uploader.upload(fileUrl.content)
+
+        user.profilePic = {
+            id: cloud.public_id,
+            url: cloud.secure_url,
+        }
+    }
 
     user.name = req.body.name || user.name
     user.bio = req.body.bio || user.bio

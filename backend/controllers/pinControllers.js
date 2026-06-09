@@ -105,3 +105,23 @@ export const searchPins = TryCatch(async (req, res) => {
         .sort({ createdAt: -1 });
     res.json(pins);
 });
+export const savePin = TryCatch(async (req, res) => {
+    const pin = await Pin.findById(req.params.id)
+
+    if (!pin)
+        return res.status(404).json({ message: "Pin not found" })
+
+    const isAlreadySaved = pin.saves.includes(req.user._id)
+
+    if (isAlreadySaved) {
+        // Unsave
+        pin.saves.pull(req.user._id)
+        await pin.save()
+        res.json({ message: "Pin unsaved" })
+    } else {
+        // Save
+        pin.saves.push(req.user._id)
+        await pin.save()
+        res.json({ message: "Pin saved" })
+    }
+})

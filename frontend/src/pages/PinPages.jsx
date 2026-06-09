@@ -166,9 +166,9 @@ const PinPage = () => {
               className="flex items-center gap-3 hover:opacity-80 transition"
             >
               <div className="w-10 h-10 rounded-full bg-black/5 flex items-center justify-center overflow-hidden">
-                {pin.owner?.profilePic ? (
+                {pin.owner?.profilePic?.url ? (
                   <img
-                    src={pin.owner.profilePic}
+                    src={pin.owner.profilePic.url}
                     alt={pin.owner.name}
                     className="w-full h-full object-cover"
                   />
@@ -311,9 +311,9 @@ const PinPage = () => {
                       className="flex items-start gap-2 hover:opacity-80 transition"
                     >
                       <div className="w-7 h-7 rounded-full bg-black/5 flex items-center justify-center flex-shrink-0 overflow-hidden">
-                        {c.user?.profilePic ? (
+                        {c.user?.profilePic?.url ? (
                           <img
-                            src={c.user.profilePic}
+                            src={c.user.profilePic.url}
                             alt={c.user.name}
                             className="w-full h-full object-cover"
                           />

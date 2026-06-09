@@ -22,6 +22,8 @@ const UserProfile = () => {
   const [editBio, setEditBio] = useState("")
   const [btnLoading, setBtnLoading] = useState(false)
   const [isFollowing, setIsFollowing] = useState(false)
+  const [profilePicFile, setProfilePicFile] = useState(null)
+  const [previewPic, setPreviewPic] = useState(null)
 
   const isOwner = loggedInUser?._id === id
   const userPins = pins.filter((p) => p.owner?._id === id)
@@ -49,14 +51,22 @@ const UserProfile = () => {
       toast.error(error.response?.data?.message)
     }
   }
-
-  async function updateProfile(e) {
+async function updateProfile(e) {
     e.preventDefault()
     setBtnLoading(true)
     try {
-      await axios.put(`/api/user/${id}`, { name: editName, bio: editBio })
+      const formData = new FormData()
+      formData.append("name", editName)
+      formData.append("bio", editBio)
+      if (profilePicFile) {
+        formData.append("file", profilePicFile)
+      }
+
+      await axios.put(`/api/user/${id}`, formData)
       toast.success("Profile updated!")
       setIsEditing(false)
+      setPreviewPic(null)
+      setProfilePicFile(null)
       fetchUser()
     } catch (error) {
       toast.error(error.response?.data?.message)
@@ -64,7 +74,7 @@ const UserProfile = () => {
       setBtnLoading(false)
     }
   }
-
+  
   async function handleLogout() {
     const confirmed = window.confirm("Are you sure you want to log out?")
     if (!confirmed) return
@@ -106,51 +116,88 @@ const UserProfile = () => {
           {/* Avatar */}
           <div className="relative mb-6 group">
             <div className="w-32 h-32 md:w-40 md:h-40 rounded-full overflow-hidden border-4 border-white shadow-xl bg-black/5 flex items-center justify-center relative z-10">
-              {user.profilePic ? (
-                <img src={user.profilePic} alt={user.name} className="w-full h-full object-cover" />
-              ) : (
-                <span className="text-5xl font-bold text-gray-400">
-                  {user.name?.charAt(0).toUpperCase()}
-                </span>
-              )}
+              {user.profilePic?.url ? (
+  <img
+    src={user.profilePic.url}
+    alt={user.name}
+    className="w-full h-full object-cover"
+  />
+) : (
+  <span className="text-5xl font-bold text-gray-400">
+    {user.name?.charAt(0).toUpperCase()}
+  </span>
+)}
             </div>
             <div className="absolute inset-0 bg-[#e60023] opacity-10 rounded-full blur-2xl group-hover:opacity-20 transition-opacity"></div>
           </div>
 
           {/* Edit Form OR Name Display */}
           {isEditing ? (
-            <form onSubmit={updateProfile} className="space-y-3 w-full max-w-sm mb-4">
-              <input
-                type="text"
-                value={editName}
-                onChange={(e) => setEditName(e.target.value)}
-                className="w-full bg-black/5 rounded-full px-5 py-3 text-center font-bold text-xl focus:outline-none focus:ring-2 focus:ring-red-200 transition-all"
-                placeholder="Your name"
-              />
-              <textarea
-                value={editBio}
-                onChange={(e) => setEditBio(e.target.value)}
-                rows={3}
-                className="w-full bg-black/5 rounded-2xl px-5 py-3 text-center text-sm focus:outline-none focus:ring-2 focus:ring-red-200 transition-all resize-none"
-                placeholder="Your bio"
-              />
-              <div className="flex gap-2 justify-center">
-                <button
-                  type="submit"
-                  disabled={btnLoading}
-                  className="bg-[#e60023] text-white px-6 py-2 rounded-full font-semibold text-sm hover:bg-[#b7001a] transition active:scale-95"
-                >
-                  {btnLoading ? "Saving..." : "Save"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setIsEditing(false)}
-                  className="bg-black/5 text-gray-600 px-6 py-2 rounded-full font-semibold text-sm hover:bg-black/10 transition"
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
+        <form onSubmit={updateProfile} className="space-y-3 w-full max-w-sm">
+    
+    {/* Profile Pic Upload */}
+    <div className="flex flex-col items-center gap-2">
+      <label htmlFor="profilePic" className="cursor-pointer group">
+        <div className="w-24 h-24 rounded-full overflow-hidden bg-black/5 flex items-center justify-center border-2 border-dashed border-gray-300 group-hover:border-[#e60023] transition">
+          {previewPic ? (
+            <img src={previewPic} alt="preview" className="w-full h-full object-cover" />
+          ) : user.profilePic?.url ? (
+            <img src={user.profilePic.url} alt="profile" className="w-full h-full object-cover" />
+          ) : (
+            <span className="text-3xl font-bold text-gray-400">
+              {user.name?.charAt(0).toUpperCase()}
+            </span>
+          )}
+        </div>
+        <p className="text-xs text-gray-400 text-center mt-1">Click to change</p>
+      </label>
+      <input
+        id="profilePic"
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => {
+          setProfilePicFile(e.target.files[0])
+          setPreviewPic(URL.createObjectURL(e.target.files[0]))
+        }}
+      />
+    </div>
+
+    <input
+      type="text"
+      value={editName}
+      onChange={(e) => setEditName(e.target.value)}
+      className="w-full bg-black/5 rounded-full px-5 py-3 text-center font-bold text-xl focus:outline-none focus:ring-2 focus:ring-red-200 transition-all"
+      placeholder="Your name"
+    />
+    <textarea
+      value={editBio}
+      onChange={(e) => setEditBio(e.target.value)}
+      rows={3}
+      className="w-full bg-black/5 rounded-2xl px-5 py-3 text-center text-sm focus:outline-none focus:ring-2 focus:ring-red-200 transition-all resize-none"
+      placeholder="Your bio"
+    />
+    <div className="flex gap-2 justify-center">
+      <button
+        type="submit"
+        disabled={btnLoading}
+        className="bg-[#e60023] text-white px-6 py-2 rounded-full font-semibold text-sm hover:bg-[#b7001a] transition active:scale-95"
+      >
+        {btnLoading ? "Saving..." : "Save"}
+      </button>
+      <button
+        type="button"
+        onClick={() => {
+          setIsEditing(false)
+          setPreviewPic(null)
+          setProfilePicFile(null)
+        }}
+        className="bg-black/5 text-gray-600 px-6 py-2 rounded-full font-semibold text-sm hover:bg-black/10 transition"
+      >
+        Cancel
+      </button>
+    </div>
+  </form>
           ) : (
             <>
               <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-1">
@@ -254,38 +301,48 @@ const UserProfile = () => {
           </div>
         </nav>
 
-        {/* ── Pins Grid ── */}
-        <section>
-          {activeTab === "created" ? (
-            userPins.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-64 gap-4">
-                <p className="text-gray-400 text-lg">No pins created yet!</p>
-                {isOwner && (
-                  <Link
-                    to="/pin/create"
-                    className="bg-[#e60023] text-white px-6 py-3 rounded-full font-semibold text-sm hover:bg-[#b7001a] transition active:scale-95"
-                  >
-                    Create your first pin
-                  </Link>
-                )}
-              </div>
+        {/* Pins Grid */}
+          <section>
+            {activeTab === "created" ? (
+              userPins.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-64 gap-4">
+                  <p className="text-gray-400 text-lg">No pins created yet!</p>
+                  {isOwner && (
+                    <Link
+                      to="/pin/create"
+                      className="bg-[#e60023] text-white px-6 py-3 rounded-full font-semibold text-sm hover:bg-[#b7001a] transition active:scale-95"
+                    >
+                      Create your first pin
+                    </Link>
+                  )}
+                </div>
+              ) : (
+                <div className="columns-2 md:columns-3 lg:columns-4 gap-4">
+                  {userPins.map((pin) => (
+                    <PinCard key={pin._id} pin={pin} />
+                  ))}
+                </div>
+              )
             ) : (
-              <div className="columns-2 md:columns-3 lg:columns-4 gap-4">
-                {userPins.map((pin) => (
-                  <PinCard key={pin._id} pin={pin} />
-                ))}
-              </div>
-            )
-          ) : (
-            <div className="flex justify-center items-center h-64">
-              <p className="text-gray-400 text-lg">No saved pins yet!</p>
-            </div>
-          )}
-        </section>
+              (() => {
+                const savedPins = pins.filter((p) => p.saves?.includes(id))
+                return savedPins.length === 0 ? (
+                  <div className="flex justify-center items-center h-64">
+                    <p className="text-gray-400 text-lg">No saved pins yet!</p>
+                  </div>
+                ) : (
+                  <div className="columns-2 md:columns-3 lg:columns-4 gap-4">
+                    {savedPins.map((pin) => (
+                      <PinCard key={pin._id} pin={pin} />
+                    ))}
+                  </div>
+                )
+              })()
+            )}
+          </section>
+          </main>
+          </div>
+          )
+         }
 
-      </main>
-    </div>
-  )
-}
-
-export default UserProfile
+       export default UserProfile

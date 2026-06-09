@@ -62,9 +62,9 @@ const Navbar = () => {
               to={`/user/${user?._id}`}
               className="w-9 h-9 rounded-full bg-black/5 flex items-center justify-center overflow-hidden hover:ring-2 hover:ring-red-200 transition-all duration-300"
             >
-              {user?.profilePic ? (
+              {user?.profilePic?.url ? (
                 <img
-                  src={user.profilePic}
+                  src={user.profilePic.url}
                   alt={user.name}
                   className="w-full h-full object-cover"
                 />

@@ -20,8 +20,14 @@ const userSchema = new mongoose.Schema({
         minlength: 6,
     },
     profilePic: {
+        id:{ 
         type: String,
         default: "",
+    },
+        url : {
+            type:String,
+            default : "",
+        },
     },
     bio: {
         type: String,
