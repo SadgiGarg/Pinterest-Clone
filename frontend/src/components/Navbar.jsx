@@ -1,17 +1,25 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { UserData } from '../context/UserContext'
+import { useDebounce } from '../hooks/useDebounce'
 
 const Navbar = () => {
   const { user, isAuth } = UserData()
   const navigate = useNavigate()
   const [search, setSearch] = useState("")
+  const debouncedSearch = useDebounce(search, 300)
+
+  // ✅ Search debouncing - auto-search after 300ms
+  useEffect(() => {
+    if (debouncedSearch.trim()) {
+      navigate(`/search?query=${debouncedSearch.trim()}`)
+    }
+  }, [debouncedSearch])
 
   function handleSearch(e) {
     e.preventDefault()
     if (!search.trim()) return
     navigate(`/search?query=${search.trim()}`)
-    setSearch("")
   }
 
   return (
@@ -25,10 +33,8 @@ const Navbar = () => {
       }}
     >
       {/* Logo */}
-      <Link to="/" className="flex items-center gap-2">
-        <span className="text-[#e60023] text-2xl font-bold">
-          Pinterest
-        </span>
+      <Link to="/" className="flex items-center gap-2 flex-shrink-0">
+        <span className="text-[#e60023] text-2xl font-bold">Pinterest</span>
       </Link>
 
       {/* Search Bar */}
@@ -63,11 +69,7 @@ const Navbar = () => {
               className="w-9 h-9 rounded-full bg-black/5 flex items-center justify-center overflow-hidden hover:ring-2 hover:ring-red-200 transition-all duration-300"
             >
               {user?.profilePic?.url ? (
-                <img
-                  src={user.profilePic.url}
-                  alt={user.name}
-                  className="w-full h-full object-cover"
-                />
+                <img src={user.profilePic.url} alt={user.name} className="w-full h-full object-cover" />
               ) : (
                 <span className="text-gray-600 font-semibold text-sm">
                   {user?.name?.charAt(0).toUpperCase()}
@@ -77,16 +79,10 @@ const Navbar = () => {
           </>
         ) : (
           <>
-            <Link
-              to="/login"
-              className="text-gray-700 font-semibold text-sm px-4 py-2 rounded-full hover:bg-black/5 transition-all duration-300"
-            >
+            <Link to="/login" className="text-gray-700 font-semibold text-sm px-4 py-2 rounded-full hover:bg-black/5 transition-all duration-300">
               Log in
             </Link>
-            <Link
-              to="/register"
-              className="bg-[#e60023] text-white font-semibold rounded-full px-5 py-2 text-sm hover:bg-[#b7001a] transition-colors duration-300 active:scale-95"
-            >
+            <Link to="/register" className="bg-[#e60023] text-white font-semibold rounded-full px-5 py-2 text-sm hover:bg-[#b7001a] transition-colors duration-300 active:scale-95">
               Sign up
             </Link>
           </>

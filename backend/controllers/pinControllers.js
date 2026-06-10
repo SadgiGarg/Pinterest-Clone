@@ -9,36 +9,49 @@ export const createPin = TryCatch(async (req, res) => {
     const fileUrl = getDataUrl(file);
     const cloud = await cloudinary.uploader.upload(fileUrl.content);
     await Pin.create({
-        title,
-        pin,
-        image: {
-            id: cloud.public_id,
-            url: cloud.secure_url,
-        },
+        title, pin,
+        image: { id: cloud.public_id, url: cloud.secure_url },
         owner: req.user._id,
     });
     res.json({ message: "Pin created" });
 });
 
+// ✅ Pagination + payload minimization
 export const getAllPins = TryCatch(async (req, res) => {
-    const pins = await Pin.find().populate("owner", "-password").sort({ createdAt: -1 });
-    res.json(pins);
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const skip = (page - 1) * limit;
+
+    const pins = await Pin.find()
+        .populate("owner", "name profilePic")
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit);
+
+    const total = await Pin.countDocuments();
+
+    res.json({
+        pins,
+        page,
+        totalPages: Math.ceil(total / limit),
+        hasMore: page * limit < total,
+    });
 });
 
 export const getSinglePin = TryCatch(async (req, res) => {
     const pin = await Pin.findById(req.params.id)
         .populate("owner", "-password")
-        .populate("comments.user", "-password");
+        .populate("comments.user", "name profilePic");
     res.json(pin);
 });
 
+// ✅ Fixed - only store user ObjectId reference
 export const addComment = TryCatch(async (req, res) => {
     const pin = await Pin.findById(req.params.id);
     if (!pin)
         return res.status(404).json({ message: "Pin not found" });
     pin.comments.push({
         user: req.user._id,
-        name: req.user.name,
         comment: req.body.comment,
     });
     await pin.save();
@@ -54,9 +67,8 @@ export const deleteComment = TryCatch(async (req, res) => {
     const commentIndex = pin.comments.findIndex(
         (item) => item._id.toString() === req.query.commentId.toString()
     );
-    if (commentIndex === -1) {
+    if (commentIndex === -1)
         return res.status(404).json({ message: "Comment not found" });
-    }
     const comment = pin.comments[commentIndex];
     if (comment.user.toString() === req.user._id.toString()) {
         pin.comments.splice(commentIndex, 1);
@@ -90,38 +102,42 @@ export const updatePin = TryCatch(async (req, res) => {
     res.json({ message: "Pin updated successfully", pin });
 });
 
+// ✅ Search with pagination
 export const searchPins = TryCatch(async (req, res) => {
     const { query } = req.query;
-    if (!query) {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const skip = (page - 1) * limit;
+
+    if (!query)
         return res.status(400).json({ message: "Search query is required" });
-    }
+
     const pins = await Pin.find({
         $or: [
             { title: { $regex: query, $options: "i" } },
             { pin: { $regex: query, $options: "i" } },
         ],
     })
-        .populate("owner", "-password")
-        .sort({ createdAt: -1 });
+        .populate("owner", "name profilePic")
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit);
+
     res.json(pins);
 });
+
 export const savePin = TryCatch(async (req, res) => {
-    const pin = await Pin.findById(req.params.id)
-
+    const pin = await Pin.findById(req.params.id);
     if (!pin)
-        return res.status(404).json({ message: "Pin not found" })
-
-    const isAlreadySaved = pin.saves.includes(req.user._id)
-
+        return res.status(404).json({ message: "Pin not found" });
+    const isAlreadySaved = pin.saves.includes(req.user._id);
     if (isAlreadySaved) {
-        // Unsave
-        pin.saves.pull(req.user._id)
-        await pin.save()
-        res.json({ message: "Pin unsaved" })
+        pin.saves.pull(req.user._id);
+        await pin.save();
+        res.json({ message: "Pin unsaved", saves: pin.saves.length });
     } else {
-        // Save
-        pin.saves.push(req.user._id)
-        await pin.save()
-        res.json({ message: "Pin saved" })
+        pin.saves.push(req.user._id);
+        await pin.save();
+        res.json({ message: "Pin saved", saves: pin.saves.length });
     }
-})
+});
