@@ -43,6 +43,7 @@ const pinSchema = new mongoose.Schema({
         ref: "User",
     }
 ],
+likes: [{ type: mongoose.Schema.Types.ObjectId, ref: "User", default: [] }],
 }, { timestamps: true });
 
 export default mongoose.model("Pin", pinSchema);

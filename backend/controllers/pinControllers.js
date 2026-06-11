@@ -141,3 +141,34 @@ export const savePin = TryCatch(async (req, res) => {
         res.json({ message: "Pin saved", saves: pin.saves.length });
     }
 });
+export const toggleLikePin = async (req, res) => {
+  try {
+    const pin = await Pin.findById(req.params.id);
+    if (!pin) return res.status(404).json({ message: "Pin not found" });
+
+    // req.user._id comes from your login auth middleware
+    const userId = req.user._id; 
+
+    // Check if the user already liked this pin
+    const isLiked = pin.likes.includes(userId);
+
+    if (isLiked) {
+      // Unlike: Remove user ID from array
+      pin.likes = pin.likes.filter((id) => id.toString() !== userId.toString());
+    } else {
+      // Like: Push user ID into array
+      pin.likes.push(userId);
+    }
+
+    await pin.save();
+    
+    // Return the updated likes array and status to the frontend
+    res.status(200).json({ 
+      likes: pin.likes, 
+      isLiked: !isLiked, 
+      count: pin.likes.length 
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};

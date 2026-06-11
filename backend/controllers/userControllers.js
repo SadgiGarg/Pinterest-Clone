@@ -50,9 +50,35 @@ export const myProfile = TryCatch(async (req, res) => {
     res.json(user);
 });
 
+// 🔑 Make sure Pin is imported at the top of userController.js if it isn't already!
+import Pin from "../models/pinModel.js"; 
+import mongoose from "mongoose";
+
 export const userProfile = TryCatch(async (req, res) => {
-    const user = await User.findById(req.params.id).select("-password");
-    res.json(user);
+    const userId = req.params.id;
+
+    // 1. Double-check that the string ID format is structurally valid for MongoDB
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+        return res.status(400).json({ message: "Invalid User ID format" });
+    }
+
+    // 2. Fetch the target user details
+    const user = await User.findById(userId).select("-password");
+    if (!user) {
+        return res.status(404).json({ message: "User not found" });
+    }
+
+    // 3. 🎯 THE FIX: Query the Pin collection for pins owned by this user
+    // We cast the string parameters to a proper ObjectId instance
+    const pins = await Pin.find({ owner: new mongoose.Types.ObjectId(userId) })
+        .populate("owner", "name profilePic")
+        .sort({ createdAt: -1 });
+
+    // 4. Send BOTH the user information and their pins back to the frontend
+    res.json({
+        user,
+        pins
+    });
 });
 
 export const followAndUnfollow = TryCatch(async (req, res) => {

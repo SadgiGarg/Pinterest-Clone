@@ -11,10 +11,15 @@ import { FiShare2, FiEdit2, FiLogOut } from 'react-icons/fi'
 const UserProfile = () => {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { user: loggedInUser, setIsAuth, setUser } = UserData()
+  const { user: loggedInUser, setIsAuth } = UserData()
   const { pins } = PinData()
 
+  // 👤 State for profile information
   const [user, setProfileUser] = useState(null)
+  
+  // 📌 State to hold pins returned explicitly by the backend for this user
+  const [localUserPins, setLocalUserPins] = useState([])
+  
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState("created")
   const [isEditing, setIsEditing] = useState(false)
@@ -26,17 +31,22 @@ const UserProfile = () => {
   const [previewPic, setPreviewPic] = useState(null)
 
   const isOwner = loggedInUser?._id === id
-  const userPins = pins.filter((p) => p.owner?._id === id)
 
   async function fetchUser() {
     try {
+      setLoading(true)
       const { data } = await axios.get(`/api/user/${id}`)
-      setProfileUser(data)
-      setEditName(data.name)
-      setEditBio(data.bio || "")
-      setIsFollowing(data.followers?.includes(loggedInUser?._id))
+      
+      // ✅ Restructure the nested backend data wrapper payload correctly
+      setProfileUser(data.user)
+      setLocalUserPins(data.pins || [])
+      
+      setEditName(data.user.name)
+      setEditBio(data.user.bio || "")
+      setIsFollowing(data.user.followers?.includes(loggedInUser?._id))
     } catch (error) {
-      console.log(error)
+      console.log("Error loading profile data payload:", error)
+      toast.error("Could not fetch user profile details")
     } finally {
       setLoading(false)
     }
@@ -51,7 +61,8 @@ const UserProfile = () => {
       toast.error(error.response?.data?.message)
     }
   }
-async function updateProfile(e) {
+
+  async function updateProfile(e) {
     e.preventDefault()
     setBtnLoading(true)
     try {
@@ -82,7 +93,6 @@ async function updateProfile(e) {
       await axios.get("/api/user/logout")
       toast.success("Logged out successfully!")
       setIsAuth(false)
-      setUser(null)
       navigate("/login")
     } catch (error) {
       toast.error("Logout failed. Please try again.")
@@ -117,87 +127,87 @@ async function updateProfile(e) {
           <div className="relative mb-6 group">
             <div className="w-32 h-32 md:w-40 md:h-40 rounded-full overflow-hidden border-4 border-white shadow-xl bg-black/5 flex items-center justify-center relative z-10">
               {user.profilePic?.url ? (
-  <img
-    src={user.profilePic.url}
-    alt={user.name}
-    className="w-full h-full object-cover"
-  />
-) : (
-  <span className="text-5xl font-bold text-gray-400">
-    {user.name?.charAt(0).toUpperCase()}
-  </span>
-)}
+                <img
+                  src={user.profilePic.url}
+                  alt={user.name}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <span className="text-5xl font-bold text-gray-400">
+                  {user.name?.charAt(0).toUpperCase()}
+                </span>
+              )}
             </div>
             <div className="absolute inset-0 bg-[#e60023] opacity-10 rounded-full blur-2xl group-hover:opacity-20 transition-opacity"></div>
           </div>
 
           {/* Edit Form OR Name Display */}
           {isEditing ? (
-        <form onSubmit={updateProfile} className="space-y-3 w-full max-w-sm">
-    
-    {/* Profile Pic Upload */}
-    <div className="flex flex-col items-center gap-2">
-      <label htmlFor="profilePic" className="cursor-pointer group">
-        <div className="w-24 h-24 rounded-full overflow-hidden bg-black/5 flex items-center justify-center border-2 border-dashed border-gray-300 group-hover:border-[#e60023] transition">
-          {previewPic ? (
-            <img src={previewPic} alt="preview" className="w-full h-full object-cover" />
-          ) : user.profilePic?.url ? (
-            <img src={user.profilePic.url} alt="profile" className="w-full h-full object-cover" />
-          ) : (
-            <span className="text-3xl font-bold text-gray-400">
-              {user.name?.charAt(0).toUpperCase()}
-            </span>
-          )}
-        </div>
-        <p className="text-xs text-gray-400 text-center mt-1">Click to change</p>
-      </label>
-      <input
-        id="profilePic"
-        type="file"
-        accept="image/*"
-        className="hidden"
-        onChange={(e) => {
-          setProfilePicFile(e.target.files[0])
-          setPreviewPic(URL.createObjectURL(e.target.files[0]))
-        }}
-      />
-    </div>
+            <form onSubmit={updateProfile} className="space-y-3 w-full max-w-sm">
+        
+              {/* Profile Pic Upload */}
+              <div className="flex flex-col items-center gap-2">
+                <label htmlFor="profilePic" className="cursor-pointer group">
+                  <div className="w-24 h-24 rounded-full overflow-hidden bg-black/5 flex items-center justify-center border-2 border-dashed border-gray-300 group-hover:border-[#e60023] transition">
+                    {previewPic ? (
+                      <img src={previewPic} alt="preview" className="w-full h-full object-cover" />
+                    ) : user.profilePic?.url ? (
+                      <img src={user.profilePic.url} alt="profile" className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-3xl font-bold text-gray-400">
+                        {user.name?.charAt(0).toUpperCase()}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-gray-400 text-center mt-1">Click to change</p>
+                </label>
+                <input
+                  id="profilePic"
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    setProfilePicFile(e.target.files[0])
+                    setPreviewPic(URL.createObjectURL(e.target.files[0]))
+                  }}
+                />
+              </div>
 
-    <input
-      type="text"
-      value={editName}
-      onChange={(e) => setEditName(e.target.value)}
-      className="w-full bg-black/5 rounded-full px-5 py-3 text-center font-bold text-xl focus:outline-none focus:ring-2 focus:ring-red-200 transition-all"
-      placeholder="Your name"
-    />
-    <textarea
-      value={editBio}
-      onChange={(e) => setEditBio(e.target.value)}
-      rows={3}
-      className="w-full bg-black/5 rounded-2xl px-5 py-3 text-center text-sm focus:outline-none focus:ring-2 focus:ring-red-200 transition-all resize-none"
-      placeholder="Your bio"
-    />
-    <div className="flex gap-2 justify-center">
-      <button
-        type="submit"
-        disabled={btnLoading}
-        className="bg-[#e60023] text-white px-6 py-2 rounded-full font-semibold text-sm hover:bg-[#b7001a] transition active:scale-95"
-      >
-        {btnLoading ? "Saving..." : "Save"}
-      </button>
-      <button
-        type="button"
-        onClick={() => {
-          setIsEditing(false)
-          setPreviewPic(null)
-          setProfilePicFile(null)
-        }}
-        className="bg-black/5 text-gray-600 px-6 py-2 rounded-full font-semibold text-sm hover:bg-black/10 transition"
-      >
-        Cancel
-      </button>
-    </div>
-  </form>
+              <input
+                type="text"
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                className="w-full bg-black/5 rounded-full px-5 py-3 text-center font-bold text-xl focus:outline-none focus:ring-2 focus:ring-red-200 transition-all"
+                placeholder="Your name"
+              />
+              <textarea
+                value={editBio}
+                onChange={(e) => setEditBio(e.target.value)}
+                rows={3}
+                className="w-full bg-black/5 rounded-2xl px-5 py-3 text-center text-sm focus:outline-none focus:ring-2 focus:ring-red-200 transition-all resize-none"
+                placeholder="Your bio"
+              />
+              <div className="flex gap-2 justify-center">
+                <button
+                  type="submit"
+                  disabled={btnLoading}
+                  className="bg-[#e60023] text-white px-6 py-2 rounded-full font-semibold text-sm hover:bg-[#b7001a] transition active:scale-95"
+                >
+                  {btnLoading ? "Saving..." : "Save"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsEditing(false)
+                    setPreviewPic(null)
+                    setProfilePicFile(null)
+                  }}
+                  className="bg-black/5 text-gray-600 px-6 py-2 rounded-full font-semibold text-sm hover:bg-black/10 transition"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
           ) : (
             <>
               <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-1">
@@ -302,47 +312,48 @@ async function updateProfile(e) {
         </nav>
 
         {/* Pins Grid */}
-          <section>
-            {activeTab === "created" ? (
-              userPins.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-64 gap-4">
-                  <p className="text-gray-400 text-lg">No pins created yet!</p>
-                  {isOwner && (
-                    <Link
-                      to="/pin/create"
-                      className="bg-[#e60023] text-white px-6 py-3 rounded-full font-semibold text-sm hover:bg-[#b7001a] transition active:scale-95"
-                    >
-                      Create your first pin
-                    </Link>
-                  )}
+        <section>
+          {activeTab === "created" ? (
+            localUserPins.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-64 gap-4">
+                <p className="text-gray-400 text-lg">No pins created yet!</p>
+                {isOwner && (
+                  <Link
+                    to="/pin/create"
+                    className="bg-[#e60023] text-white px-6 py-3 rounded-full font-semibold text-sm hover:bg-[#b7001a] transition active:scale-95"
+                  >
+                    Create your first pin
+                  </Link>
+                )}
+              </div>
+            ) : (
+              <div className="columns-2 md:columns-3 lg:columns-4 gap-4">
+                {localUserPins.map((pin) => (
+                  <PinCard key={pin._id} pin={pin} />
+                ))}
+              </div>
+            )
+          ) : (
+            (() => {
+              // Filters globally stored state values to identify matching items saved by this account
+              const savedPins = pins.filter((p) => p.saves?.includes(id))
+              return savedPins.length === 0 ? (
+                <div className="flex justify-center items-center h-64">
+                  <p className="text-gray-400 text-lg">No saved pins yet!</p>
                 </div>
               ) : (
                 <div className="columns-2 md:columns-3 lg:columns-4 gap-4">
-                  {userPins.map((pin) => (
+                  {savedPins.map((pin) => (
                     <PinCard key={pin._id} pin={pin} />
                   ))}
                 </div>
               )
-            ) : (
-              (() => {
-                const savedPins = pins.filter((p) => p.saves?.includes(id))
-                return savedPins.length === 0 ? (
-                  <div className="flex justify-center items-center h-64">
-                    <p className="text-gray-400 text-lg">No saved pins yet!</p>
-                  </div>
-                ) : (
-                  <div className="columns-2 md:columns-3 lg:columns-4 gap-4">
-                    {savedPins.map((pin) => (
-                      <PinCard key={pin._id} pin={pin} />
-                    ))}
-                  </div>
-                )
-              })()
-            )}
-          </section>
-          </main>
-          </div>
-          )
-         }
+            })()
+          )}
+        </section>
+      </main>
+    </div>
+  )
+}
 
-       export default UserProfile
+export default UserProfile

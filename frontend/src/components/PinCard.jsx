@@ -8,16 +8,19 @@ const PinCard = ({ pin }) => {
   const { user } = UserData()
   const { setPins } = PinData()
   const [saving, setSaving] = useState(false)
+  const [liking, setLiking] = useState(false)
   const [isHovered, setIsHovered] = useState(false)
 
   const isSaved = pin.saves?.includes(user?._id)
+  // ✅ Check if the current logged-in user is in the likes array
+  const isLiked = pin.likes?.includes(user?._id)
 
   async function handleSave(e) {
     e.preventDefault()
     e.stopPropagation()
     if (saving) return
 
-    // ✅ Optimistic UI update
+    // ✅ Optimistic UI update for Saves
     const wasSaved = isSaved
     setPins(prev => prev.map(p => {
       if (p._id !== pin._id) return p
@@ -46,6 +49,46 @@ const PinCard = ({ pin }) => {
       console.log(error)
     } finally {
       setSaving(false)
+    }
+  }
+
+  // ✅ New Handler: Toggles Like status optimistically
+  async function handleLike(e) {
+    e.preventDefault()
+    e.stopPropagation()
+    if (liking) return
+
+    const wasLiked = isLiked
+    
+    // ⚡ Optimistic UI Update: Instantly add/remove user ID from context state array
+    setPins(prev => prev.map(p => {
+      if (p._id !== pin._id) return p
+      return {
+        ...p,
+        likes: wasLiked
+          ? (p.likes || []).filter(id => id !== user?._id)
+          : [...(p.likes || []), user?._id]
+      }
+    }))
+
+    setLiking(true)
+    try {
+      // Hits the PUT endpoint we established on your backend routes line
+      await axios.put(`/api/pin/like/${pin._id}`)
+    } catch (error) {
+      // 🔄 Rollback state changes gracefully if the database server throws an error
+      setPins(prev => prev.map(p => {
+        if (p._id !== pin._id) return p
+        return {
+          ...p,
+          likes: wasLiked
+            ? [...(p.likes || []), user?._id]
+            : (p.likes || []).filter(id => id !== user?._id)
+        }
+      }))
+      console.log("Like feature error context:", error)
+    } finally {
+      setLiking(false)
     }
   }
 
@@ -80,7 +123,7 @@ const PinCard = ({ pin }) => {
             />
           </Link>
 
-          {/* ✅ Hover overlay */}
+          {/* Hover overlay */}
           <div
             className="absolute inset-0 flex flex-col justify-between p-3 pointer-events-none"
             style={{
@@ -163,11 +206,33 @@ const PinCard = ({ pin }) => {
               </span>
             </Link>
 
-            {pin.saves?.length > 0 && (
-              <span className="text-xs text-gray-400">
-                {pin.saves.length} {pin.saves.length === 1 ? "save" : "saves"}
-              </span>
-            )}
+            {/* ✅ Interactive Heart Section */}
+            <div className="flex items-center gap-2.5">
+              <button 
+                onClick={handleLike}
+                disabled={liking}
+                className="transition-transform duration-150 active:scale-90 flex items-center justify-center focus:outline-none"
+              >
+                {isLiked ? (
+                  // Filled Red Heart Icon SVG
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#e60023" className="w-5 h-5 drop-shadow-sm">
+                    <path d="M11.645 20.91l-.007-.003-.005-.002-1.198-.6c-4.436-2.233-7.435-5.322-7.435-9.135 0-3.376 2.725-6.172 6.12-6.172 2.11 0 3.86 1.05 4.88 2.535 1.02-1.485 2.77-2.535 4.88-2.535 3.395 0 6.12 2.796 6.12 6.172 0 3.813-3 6.902-7.435 9.136l-1.197.6-.005.002-.007.003-.03.015a.75.75 0 01-.659 0l-.03-.015z" />
+                  </svg>
+                ) : (
+                  // Outlined Gray Heart Icon SVG
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-5 h-5 text-gray-400 hover:text-gray-600 transition-colors">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
+                  </svg>
+                )}
+              </button>
+
+              {/* Display total likes tally metrics dynamically */}
+              {pin.likes?.length > 0 && (
+                <span className="text-xs font-medium text-gray-500 min-w-[10px]">
+                  {pin.likes.length}
+                </span>
+              )}
+            </div>
           </div>
         </div>
       </div>
